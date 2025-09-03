@@ -77,7 +77,7 @@ public class NetworkHostExt extends HostSimple {
     private final List<HostPacketExt> hostPktsReceived;
 
 
-    @Getter @Setter @NonNull
+    @Getter @Setter
     private EdgeSwitchExt edgeSwitchExt;
 
     /**
