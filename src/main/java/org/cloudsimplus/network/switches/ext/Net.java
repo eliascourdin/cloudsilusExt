@@ -26,18 +26,19 @@ public class Net extends CloudSimEntity{
 
     private final List<EdgeSwitchExt> switchList;
 
-    private final Map<EdgeSwitchExt, Double> delays;
+    private final Map<EdgeSwitchExt, Integer> levels;
 
-    private final Map<EdgeSwitchExt, NetworkDatacenter> datacenters;
-
-
+    private double[][] delayMatrix;
 
 
-    public Net(@NonNull Simulation simulation) {
+
+
+
+    public Net(Simulation simulation) {
         super(simulation);
+        this.levels =  new HashMap<>();
         this.switchList = new ArrayList<>();
-        this.delays = new HashMap<>();
-        this.datacenters = new HashMap<>();
+        this.delayMatrix = new double[4][4];
     }
 
     @Override
@@ -45,6 +46,27 @@ public class Net extends CloudSimEntity{
         LOGGER.info("{} is starting...", this);
 
     }
+
+
+
+    //level 0 for client, level 1 for edge level 2 for fog, level 3 for cloud
+    public void setDelay(int i, int j, double value) {
+        if (i < 4 && j < 4) {
+            delayMatrix[i][j] = value;
+        } else {
+            throw new IndexOutOfBoundsException("Indices fuera de rango para delayMatrix");
+        }
+    }
+
+    public double getDelay(int i, int j) {
+        if (i < 4 && j < 4) {
+            return delayMatrix[i][j];
+        } else {
+            throw new IndexOutOfBoundsException("Indices fuera de rango para delayMatrix");
+        }
+    }
+
+
 
     @Override
     public void processEvent(SimEvent evt) {
@@ -61,11 +83,15 @@ public class Net extends CloudSimEntity{
         final HostPacketExt pkt = (HostPacketExt) evt.getData();
         NetworkHostExt hostDest = pkt.getDestination();
         EdgeSwitchExt switchDest = hostDest.getEdgeSwitchExt();
-        if (hostDest.getDatacenter().getId() == pkt.getSource().getDatacenter().getId()){
+        NetworkHostExt hostOrigin = pkt.getSource();
+        EdgeSwitchExt switchOrigin = hostOrigin.getEdgeSwitchExt();
+        if (hostDest.getDatacenter().getId() == hostOrigin.getDatacenter().getId()){
             LOGGER.trace("ERROR EL PAQUETE NO DEBERIA LLEGAR HASTA ACA"); //MENSAJE DE ERROR DICIENDO QUE EL DATACENTER DEL QUE PROVIENE EL PAQUETE ES EL MISMO QUE EL DESTINO
         }
-        if (this.delays.containsKey(switchDest)) {
-            final double delay = this.delays.get(switchDest);
+        if (this.levels.containsKey(switchDest)) {
+            final int levelOrigin = this.levels.get(switchOrigin);
+            final int levelDest = this.levels.get(switchDest);
+            final double delay = getDelay(levelOrigin, levelDest);
             send(switchDest, delay, CloudSimTag.NETWORK_EVENT_DOWN, pkt);
         }
         else{
@@ -82,14 +108,11 @@ public class Net extends CloudSimEntity{
         return super.schedule(tag);
     }
 
-    public void connectToEdgeSwitch(EdgeSwitchExt edge, double delay){
+    public void connectToEdgeSwitch(EdgeSwitchExt edge){
         this.switchList.add(edge);
-        this.delays.put(edge, delay);
-        this.datacenters.put(edge, edge.getDatacenter());
+        this.levels.put(edge, edge.getLevel());
     }
 
 
-    public double getDelay(EdgeSwitchExt sw){
-        return this.delays.get(sw);
-    }
+
 }

@@ -25,6 +25,7 @@ package org.cloudsimplus.network.switches.ext;
 
 import org.cloudsimplus.core.SimEntity;
 import org.cloudsimplus.datacenters.network.NetworkDatacenter;
+import org.cloudsimplus.datacenters.network.ext.NetworkDatacenterExt;
 import org.cloudsimplus.network.HostPacket;
 import org.cloudsimplus.network.ext.HostPacketExt;
 
@@ -128,13 +129,13 @@ public interface SwitchExt extends SimEntity{
     /**
      * @return the Datacenter where the switch is connected to.
      */
-    NetworkDatacenter getDatacenter();
+    NetworkDatacenterExt getDatacenter();
 
     /**
      * Sets the Datacenter where the switch is connected to.
      * @param datacenter the Datacenter to set
      */
-    SwitchExt setDatacenter(NetworkDatacenter datacenter);
+    SwitchExt setDatacenter(NetworkDatacenterExt datacenter);
 
 
     int getLevel();

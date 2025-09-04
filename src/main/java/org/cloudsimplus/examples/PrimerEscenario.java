@@ -10,8 +10,12 @@ import org.cloudsimplus.cloudlets.network.CloudletSendTask;
 import org.cloudsimplus.cloudlets.network.NetworkCloudlet;
 import org.cloudsimplus.core.CloudSimPlus;
 import org.cloudsimplus.datacenters.network.NetworkDatacenter;
+import org.cloudsimplus.datacenters.network.ext.NetworkDatacenterExt;
 import org.cloudsimplus.hosts.network.NetworkHost;
+import org.cloudsimplus.hosts.network.ext.NetworkHostExt;
 import org.cloudsimplus.network.switches.EdgeSwitch;
+import org.cloudsimplus.network.switches.ext.EdgeSwitchExt;
+import org.cloudsimplus.network.switches.ext.Net;
 import org.cloudsimplus.provisioners.ResourceProvisionerSimple;
 import org.cloudsimplus.resources.Pe;
 import org.cloudsimplus.resources.PeSimple;
@@ -51,15 +55,17 @@ public class PrimerEscenario {
 
     private static final long NUM_PACKETS = 1;
     private static final long PACKET_LENGTH = 1;
+    private static final int CANT_VMS = 7;
 
     private final CloudSimPlus simulation;
 
     private List<NetworkVm> vmList;
     private List<NetworkCloudlet> cloudletList;
-    private final NetworkDatacenter datacenterEdge;
-    private final NetworkDatacenter datacenterFog;
-    private final NetworkDatacenter datacenterCloud;
+    private final NetworkDatacenterExt datacenterEdge;
+    private final NetworkDatacenterExt datacenterFog;
+    private final NetworkDatacenterExt datacenterCloud;
     private final DatacenterBroker broker;
+    private final Net net;
 
     /**
      * Starts the execution of the example.
@@ -75,48 +81,85 @@ public class PrimerEscenario {
     private PrimerEscenario() {
         System.out.println("Starting " + getClass().getSimpleName());
         simulation = new CloudSimPlus();
-
+        net = crateNet();
         datacenterEdge = createDatacenterEdge();
         datacenterFog = createDatacenterFog();
         datacenterCloud = createDatacenterCloud();
         broker = new DatacenterBrokerSimple(simulation);
-        for (int i = 0; i < 100; i++) {
-            int path = Sorteo();  //sorteo el path, 86% path0, 12% path1, 2% path2.
-            vmList = createAndSubmitVMs(broker, path); //hay que pasar el submission delay de la vm en funcion de i
-            if (path == 0){
-                cloudletList = createPath0(vmList);
-            }
-            if (path == 1){
-                cloudletList = createPath1(vmList);
-            }
-            else{
-                cloudletList = createPath2(vmList);
-            }
-            broker.submitCloudletList(cloudletList, i*5);
-        }
-
+        vmList = createAndSubmitVMs(broker);
+        createServices(broker, 100);
         simulation.start();
         showSimulationResults();
     }
 
-    private List<NetworkCloudlet> createPath2(List<NetworkVm> vmList) {
+    private Net crateNet() {
+        Net n =  new Net(simulation);
+        n.setDelay(0,0, 0);
+        n.setDelay(0,1, 10);
+        n.setDelay(0,2, 15);
+        n.setDelay(0,3, 30);
+        n.setDelay(1,0,10);
+        n.setDelay(1,1, 0);
+        n.setDelay(1,2, 10);
+        n.setDelay(1,3, 20);
+        n.setDelay(2,0, 15);
+        n.setDelay(2,1, 10);
+        n.setDelay(2,2, 0);
+        n.setDelay(2,3, 10);
+        n.setDelay(3,0, 30);
+        n.setDelay(3,1, 20);
+        n.setDelay(3,2, 10);
+        n.setDelay(3,3, 0);
+        return n;
+    }
+
+
+    private void createServices(DatacenterBroker broker, int cantServices){
+        for (int i = 0; i < cantServices; i++) {
+            int path = Sorteo();  //sorteo el path, 86% path0, 12% path1, 2% path2.
+            if (path == 0){
+                cloudletList = createPath0();
+            }
+            if (path == 1){
+                cloudletList = createPath1();
+            }
+            else{
+                cloudletList = createPath2();
+            }
+            broker.submitCloudletList(cloudletList, i*5);
+        }
+    }
+
+    private List<NetworkCloudlet> createPath2() {
         return List.of();
     }
 
-    private List<NetworkCloudlet> createPath1(List<NetworkVm> vmList) {
+    private List<NetworkCloudlet> createPath1() {
         return List.of();
     }
 
-    private NetworkDatacenter createDatacenterCloud() {
-        return null;
+    private NetworkDatacenterExt createDatacenterCloud() {
+        NetworkDatacenterExt dc = createDatacenter();
+        createNetwork(dc, 3);
+        return dc;
     }
 
-    private NetworkDatacenter createDatacenterFog() {
-        return null;
+    private NetworkDatacenterExt createDatacenterFog() {
+        NetworkDatacenterExt dc = createDatacenter();
+        createNetwork(dc, 2);
+        return dc;
     }
 
-    private NetworkDatacenter createDatacenterEdge() {
-        return null;
+    private NetworkDatacenterExt createDatacenterEdge() {
+        NetworkDatacenterExt dc = createDatacenter();
+        createNetwork(dc, 1);
+        return dc;
+    }
+
+    private NetworkDatacenterExt createDatacenterClient(){
+        NetworkDatacenterExt dc = createDatacenter();
+        createNetwork(dc, 0);
+        return dc;
     }
 
     private int Sorteo() {
@@ -136,15 +179,15 @@ public class PrimerEscenario {
         new CloudletsTableBuilder(cloudletFinishedList).build();
 
         System.out.println();
-        for (NetworkHost host : datacenterEdge.getHostList()) {
+        for (NetworkHostExt host : datacenterEdge.getHostList()) {
             System.out.printf("Host %d data transferred: %d bytes%n",
                 host.getId(), host.getTotalDataTransferBytes());
         }
-        for (NetworkHost host : datacenterFog.getHostList()) {
+        for (NetworkHostExt host : datacenterFog.getHostList()) {
             System.out.printf("Host %d data transferred: %d bytes%n",
                 host.getId(), host.getTotalDataTransferBytes());
         }
-        for (NetworkHost host : datacenterCloud.getHostList()) {
+        for (NetworkHostExt host : datacenterCloud.getHostList()) {
             System.out.printf("Host %d data transferred: %d bytes%n",
                 host.getId(), host.getTotalDataTransferBytes());
         }
@@ -152,23 +195,21 @@ public class PrimerEscenario {
         System.out.println(getClass().getSimpleName() + " finished!");
     }
 
-    private NetworkDatacenter createDatacenter() {
-        final var netHostList = new ArrayList<NetworkHost>();
+    private NetworkDatacenterExt createDatacenter() {
+        final var netHostList = new ArrayList<NetworkHostExt>();
         for (int i = 0; i < HOSTS; i++) {
-            final NetworkHost host = createHost();
+            final NetworkHostExt host = createHost();
             netHostList.add(host);
         }
 
-        final var dc = new NetworkDatacenter(simulation, netHostList);
-        dc.setSchedulingInterval(5);
+        final var dc = new NetworkDatacenterExt(simulation, netHostList);
 
-        createNetwork(dc);
         return dc;
     }
 
-    private NetworkHost createHost() {
+    private NetworkHostExt createHost() {
         final var peList = createPEs(HOST_PES, HOST_MIPS);
-        final var host = new NetworkHost(HOST_RAM, HOST_BW, HOST_STORAGE, peList);
+        final var host = new NetworkHostExt(HOST_RAM, HOST_BW, HOST_STORAGE, peList);
         host
             .setRamProvisioner(new ResourceProvisionerSimple())
             .setBwProvisioner(new ResourceProvisionerSimple())
@@ -191,13 +232,13 @@ public class PrimerEscenario {
      *
      * @param datacenter Datacenter where the network will be created
      */
-    private void createNetwork(final NetworkDatacenter datacenter) {
-        final var edgeSwitch = new EdgeSwitch(simulation, datacenter);
-        datacenter.addSwitch(edgeSwitch);
-        for (NetworkHost host : datacenter.getHostList()) {
-            final int switchNum = getSwitchIndex(host, edgeSwitch.getPorts());
-            edgeSwitch.connectHost(host);
+    private void createNetwork(final NetworkDatacenterExt datacenter, int level) {
+        final var edgeSwitchExt = new EdgeSwitchExt(simulation, datacenter, level);
+        datacenter.addSwitch(edgeSwitchExt);
+        for (NetworkHostExt host : datacenter.getHostList()) {
+            edgeSwitchExt.connectHost(host);
         }
+        edgeSwitchExt.connectToNet(net);
     }
 
     /**
@@ -207,9 +248,9 @@ public class PrimerEscenario {
      * @param broker The broker that will own the created VMs
      * @return the list of created VMs
      */
-    private List<NetworkVm> createAndSubmitVMs(DatacenterBroker broker, int path) {
+    private List<NetworkVm> createAndSubmitVMs(DatacenterBroker broker) {
         final var netVmList = new ArrayList<NetworkVm>();
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < CANT_VMS; i++) {
             final NetworkVm vm = createVm(i);
             netVmList.add(vm);
         }
@@ -234,7 +275,7 @@ public class PrimerEscenario {
      *
      * @return the list of create NetworkCloudlets
      */
-    private List<NetworkCloudlet> createPath0(List<NetworkVm> vmList) {
+    private List<NetworkCloudlet> createPath0() {
         final int cloudletsNumber = 3;
         final var netCloudletList = new ArrayList<NetworkCloudlet>(cloudletsNumber);
 
@@ -251,8 +292,9 @@ public class PrimerEscenario {
 
         //NetworkCloudlet 1 NGINX
         //epoll como un exec
+        addReceiveTask(NGINX, CLIENT, NUM_PACKETS);
         addExecutionTask(NGINX,1500); //epoll
-        addReceiveTask(NGINX, CLIENT, NUM_PACKETS); //debe demorar 2000?
+        addExecutionTask(NGINX,2000); //socket
         addExecutionTask(NGINX, 40000); //process
         //Consulta MemCached
         addExecutionTask(MEMCACHED, 1500); //epoll
@@ -262,8 +304,9 @@ public class PrimerEscenario {
         addSendTask(NGINX, CLIENT, NUM_PACKETS, PACKET_LENGTH);  //send client
 
         //NetworkCloudlet 2 MEMCACHED
+        addReceiveTask(MEMCACHED, NGINX, NUM_PACKETS);       // (recibe petición)
         addExecutionTask(MEMCACHED, 1500);                   // epoll
-        addReceiveTask(MEMCACHED, NGINX, NUM_PACKETS);       // socket (recibe petición)
+        addExecutionTask(MEMCACHED, 2000);                   // socket
         addExecutionTask(MEMCACHED, 600);                    // proc_read
         addSendTask(MEMCACHED, NGINX, NUM_PACKETS, PACKET_LENGTH); // send (responde a nginx)
         return netCloudletList;

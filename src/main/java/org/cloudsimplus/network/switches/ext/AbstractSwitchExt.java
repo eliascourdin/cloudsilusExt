@@ -17,6 +17,7 @@ import org.cloudsimplus.core.CloudSimTag;
 import org.cloudsimplus.core.events.PredicateType;
 import org.cloudsimplus.core.events.SimEvent;
 import org.cloudsimplus.datacenters.network.NetworkDatacenter;
+import org.cloudsimplus.datacenters.network.ext.NetworkDatacenterExt;
 import org.cloudsimplus.hosts.network.NetworkHost;
 import org.cloudsimplus.hosts.network.ext.NetworkHostExt;
 import org.cloudsimplus.network.HostPacket;
@@ -35,7 +36,7 @@ public abstract class AbstractSwitchExt extends CloudSimEntity implements Switch
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractSwitchExt.class.getSimpleName());
 
     @Getter @Setter @NonNull
-    private NetworkDatacenter datacenter;
+    private NetworkDatacenterExt datacenter;
 
     @Getter
     private double uplinkBandwidth;
@@ -73,7 +74,7 @@ public abstract class AbstractSwitchExt extends CloudSimEntity implements Switch
      */
     private final Map<NetworkHostExt, List<HostPacketExt>> packetToHostMap;
 
-    public AbstractSwitchExt(final CloudSimPlus simulation, final NetworkDatacenter dc) {
+    public AbstractSwitchExt(final CloudSimPlus simulation, final NetworkDatacenterExt dc) {
         super(simulation);
         this.packetToHostMap = new HashMap<>();
         this.uplinkSwitchPacketMap = new HashMap<>();

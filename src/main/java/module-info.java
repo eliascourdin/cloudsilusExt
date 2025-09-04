@@ -7,5 +7,4 @@ module cloudsimplus {
     requires org.apache.commons.lang3;
     requires org.jetbrains.annotations;
     requires org.slf4j;
-    requires cloudsimplus;
 }
