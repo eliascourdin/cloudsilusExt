@@ -16,6 +16,7 @@ import org.cloudsimplus.hosts.network.ext.NetworkHostExt;
 import org.cloudsimplus.network.NetworkPacket;
 import org.cloudsimplus.network.VmPacket;
 import org.cloudsimplus.network.switches.EdgeSwitch;
+import org.cloudsimplus.network.switches.ext.EdgeSwitchExt;
 
 /// Represents a packet which travels from one [Host] to another.
 /// Each packet contains the:
@@ -42,7 +43,7 @@ public final class HostPacketExt implements NetworkPacket<NetworkHostExt> {
      * Information about the virtual sender and receiver entities of the packet
      * (the sender and receiver Cloudlet and their respective VMs).
      */
-    private final VmPacket vmPacket;
+    private final VmPacketExt vmPacket;
 
     /**
      * The {@link Host} that this packet is coming from (the sender).
@@ -63,7 +64,7 @@ public final class HostPacketExt implements NetworkPacket<NetworkHostExt> {
      * @param sourceHost host sending the packet
      * @param vmPacket vm packet containing information of sender and receiver Cloudlets and their VMs.
      */
-    public HostPacketExt(final NetworkHostExt sourceHost, @NonNull final VmPacket vmPacket) {
+    public HostPacketExt(final NetworkHostExt sourceHost, @NonNull final VmPacketExt vmPacket) {
         this.vmPacket = vmPacket;
         this.sendTime = vmPacket.getSendTime();
         this.setSource(sourceHost);
@@ -83,7 +84,7 @@ public final class HostPacketExt implements NetworkPacket<NetworkHostExt> {
      * Gets the {@link EdgeSwitch} that the Host where the VM receiving a packet is connected to.
      * @return the Edge Switch connected to the Host where the targeting VM is placed
      */
-    public EdgeSwitch getVmEdgeSwitch() {
-        return vmPacket.getDestinationHost().getEdgeSwitch();
+    public EdgeSwitchExt getVmEdgeSwitch() {
+        return vmPacket.getDestinationHost().getEdgeSwitchExt();
     }
 }

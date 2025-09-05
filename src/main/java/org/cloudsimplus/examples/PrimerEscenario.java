@@ -4,10 +4,15 @@ package org.cloudsimplus.examples;
 import org.cloudsimplus.brokers.DatacenterBroker;
 import org.cloudsimplus.brokers.DatacenterBrokerSimple;
 import org.cloudsimplus.builders.tables.CloudletsTableBuilder;
+import org.cloudsimplus.cloudlets.Cloudlet;
 import org.cloudsimplus.cloudlets.network.CloudletExecutionTask;
 import org.cloudsimplus.cloudlets.network.CloudletReceiveTask;
 import org.cloudsimplus.cloudlets.network.CloudletSendTask;
 import org.cloudsimplus.cloudlets.network.NetworkCloudlet;
+import org.cloudsimplus.cloudlets.network.ext.CloudletExecutionTaskExt;
+import org.cloudsimplus.cloudlets.network.ext.CloudletReceiveTaskExt;
+import org.cloudsimplus.cloudlets.network.ext.CloudletSendTaskExt;
+import org.cloudsimplus.cloudlets.network.ext.NetworkCloudletExt;
 import org.cloudsimplus.core.CloudSimPlus;
 import org.cloudsimplus.datacenters.network.NetworkDatacenter;
 import org.cloudsimplus.datacenters.network.ext.NetworkDatacenterExt;
@@ -23,6 +28,7 @@ import org.cloudsimplus.schedulers.cloudlet.CloudletSchedulerTimeShared;
 import org.cloudsimplus.schedulers.vm.VmSchedulerTimeShared;
 import org.cloudsimplus.utilizationmodels.UtilizationModelFull;
 import org.cloudsimplus.vms.network.NetworkVm;
+import org.cloudsimplus.vms.network.ext.NetworkVmExt;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,9 +45,9 @@ import static org.cloudsimplus.examples.NetworkVmExampleCustomAbstract.getSwitch
  */
 public class PrimerEscenario {
     private static final int HOSTS = 1;
-    private static final int HOST_MIPS = 1000;
-    private static final int HOST_PES = 4;
-    private static final int HOST_RAM = 2048; // host memory (Megabyte)
+    private static final int HOST_MIPS = 10000;
+    private static final int HOST_PES = 40;
+    private static final int HOST_RAM = 20480; // host memory (Megabyte)
     private static final long HOST_STORAGE = 1000000; // host storage
     private static final long HOST_BW = 10000;
 
@@ -56,11 +62,11 @@ public class PrimerEscenario {
     private static final long NUM_PACKETS = 1;
     private static final long PACKET_LENGTH = 1;
     private static final int CANT_VMS = 7;
+    private static final int NUM_APPS = 1;
 
     private final CloudSimPlus simulation;
 
-    private List<NetworkVm> vmList;
-    private List<NetworkCloudlet> cloudletList;
+    private List<NetworkVmExt> vmList;
     private final NetworkDatacenterExt datacenterEdge;
     private final NetworkDatacenterExt datacenterFog;
     private final NetworkDatacenterExt datacenterCloud;
@@ -87,7 +93,7 @@ public class PrimerEscenario {
         datacenterCloud = createDatacenterCloud();
         broker = new DatacenterBrokerSimple(simulation);
         vmList = createAndSubmitVMs(broker);
-        createServices(broker, 100);
+        createServices(broker, NUM_APPS);
         simulation.start();
         showSimulationResults();
     }
@@ -118,23 +124,23 @@ public class PrimerEscenario {
         for (int i = 0; i < cantServices; i++) {
             int path = Sorteo();  //sorteo el path, 86% path0, 12% path1, 2% path2.
             if (path == 0){
-                cloudletList = createPath0();
+                broker.submitCloudletList(createPath0(), i*5);
             }
             if (path == 1){
-                cloudletList = createPath1();
+                broker.submitCloudletList(createPath0(), i*5);
             }
             else{
-                cloudletList = createPath2();
+                broker.submitCloudletList(createPath0(), i*5);
             }
-            broker.submitCloudletList(cloudletList, i*5);
+
         }
     }
 
-    private List<NetworkCloudlet> createPath2() {
+    private List<NetworkCloudletExt> createPath2() {
         return List.of();
     }
 
-    private List<NetworkCloudlet> createPath1() {
+    private List<NetworkCloudletExt> createPath1() {
         return List.of();
     }
 
@@ -248,10 +254,10 @@ public class PrimerEscenario {
      * @param broker The broker that will own the created VMs
      * @return the list of created VMs
      */
-    private List<NetworkVm> createAndSubmitVMs(DatacenterBroker broker) {
-        final var netVmList = new ArrayList<NetworkVm>();
+    private List<NetworkVmExt> createAndSubmitVMs(DatacenterBroker broker) {
+        final var netVmList = new ArrayList<NetworkVmExt>();
         for (int i = 0; i < CANT_VMS; i++) {
-            final NetworkVm vm = createVm(i);
+            final NetworkVmExt vm = createVm(i);
             netVmList.add(vm);
         }
 
@@ -259,12 +265,12 @@ public class PrimerEscenario {
         return netVmList;
     }
 
-    private NetworkVm createVm(int id) {
-        final var vm = new NetworkVm(id, HOST_MIPS, HOST_PES);
+    private NetworkVmExt createVm(int id) {
+        final var vm = new NetworkVmExt(id, HOST_MIPS/CANT_VMS, HOST_PES/CANT_VMS);
         vm
-            .setRam(HOST_RAM)
-            .setBw(HOST_BW)
-            .setSize(HOST_STORAGE)
+            .setRam(HOST_RAM/CANT_VMS)
+            .setBw(HOST_BW/CANT_VMS)
+            .setSize(HOST_STORAGE/CANT_VMS)
             .setCloudletScheduler(new CloudletSchedulerTimeShared());
         return vm;
     }
@@ -275,16 +281,16 @@ public class PrimerEscenario {
      *
      * @return the list of create NetworkCloudlets
      */
-    private List<NetworkCloudlet> createPath0() {
+    private List<NetworkCloudletExt> createPath0() {
         final int cloudletsNumber = 3;
-        final var netCloudletList = new ArrayList<NetworkCloudlet>(cloudletsNumber);
+        final var netCloudletList = new ArrayList<NetworkCloudletExt>(cloudletsNumber);
 
         for (int i = 0; i < cloudletsNumber; i++) {
             netCloudletList.add(createNetworkCloudlet(vmList.get(i)));
         }
-        NetworkCloudlet CLIENT = netCloudletList.get(0);
-        NetworkCloudlet NGINX = netCloudletList.get(1);
-        NetworkCloudlet MEMCACHED = netCloudletList.get(2);
+        NetworkCloudletExt CLIENT = netCloudletList.get(0);
+        NetworkCloudletExt NGINX = netCloudletList.get(1);
+        NetworkCloudletExt MEMCACHED = netCloudletList.get(2);
 
         //NetworkCloudlet 0 CLIENT
         addSendTask(CLIENT, NGINX, NUM_PACKETS, PACKET_LENGTH);
@@ -297,9 +303,11 @@ public class PrimerEscenario {
         addExecutionTask(NGINX,2000); //socket
         addExecutionTask(NGINX, 40000); //process
         //Consulta MemCached
-        addExecutionTask(MEMCACHED, 1500); //epoll
+
         addSendTask(NGINX, MEMCACHED, NUM_PACKETS, PACKET_LENGTH); //consulta
         addReceiveTask(NGINX, MEMCACHED, NUM_PACKETS);  //wait recv
+        addExecutionTask(NGINX, 1500); //epoll
+        addExecutionTask(NGINX, 2000); //socket
         addExecutionTask(NGINX, 40000);  //process
         addSendTask(NGINX, CLIENT, NUM_PACKETS, PACKET_LENGTH);  //send client
 
@@ -318,8 +326,8 @@ public class PrimerEscenario {
      * @param vm the VM that will run the created {@link NetworkCloudlet)
      * @return
      */
-    private NetworkCloudlet createNetworkCloudlet(NetworkVm vm) {
-        final var netCloudlet = new NetworkCloudlet(HOST_PES);
+    private NetworkCloudletExt createNetworkCloudlet(NetworkVmExt vm) {
+        final var netCloudlet = new NetworkCloudletExt(HOST_PES);
         netCloudlet
             .setFileSize(CLOUDLET_FILE_SIZE)
             .setOutputSize(CLOUDLET_OUTPUT_SIZE)
@@ -337,8 +345,8 @@ public class PrimerEscenario {
      *
      * @param cloudlet the {@link NetworkCloudlet} the task will belong to
      */
-    private static void addExecutionTask(NetworkCloudlet cloudlet, long task_length) {
-        final var task = new CloudletExecutionTask(cloudlet.getTasks().size(), task_length);
+    private static void addExecutionTask(NetworkCloudletExt cloudlet, long task_length) {
+        final var task = new CloudletExecutionTaskExt(cloudlet.getTasks().size(), task_length);
         task.setMemory(TASK_RAM);
         cloudlet.addTask(task);
     }
@@ -349,8 +357,8 @@ public class PrimerEscenario {
      * @param sourceCloudlet the {@link NetworkCloudlet} from which packets will be sent
      * @param destinationCloudlet the destination {@link NetworkCloudlet} to send packets to
      */
-    private void addSendTask(final NetworkCloudlet sourceCloudlet, final NetworkCloudlet destinationCloudlet, long packet_num, long packet_length) {
-        final var task = new CloudletSendTask(sourceCloudlet.getTasks().size());
+    private void addSendTask(final NetworkCloudletExt sourceCloudlet, final NetworkCloudletExt destinationCloudlet, long packet_num, long packet_length) {
+        final var task = new CloudletSendTaskExt(sourceCloudlet.getTasks().size());
         task.setMemory(TASK_RAM);
         sourceCloudlet.addTask(task);
         for (int i = 0; i < packet_num; i++) {
@@ -365,8 +373,8 @@ public class PrimerEscenario {
      * @param cloudlet the {@link NetworkCloudlet} the task will belong to
      * @param sourceCloudlet the {@link NetworkCloudlet} expected to receive packets from
      */
-    private void addReceiveTask(final NetworkCloudlet cloudlet, final NetworkCloudlet sourceCloudlet, long packet_num) {
-        final var task = new CloudletReceiveTask(cloudlet.getTasks().size(), sourceCloudlet.getVm());
+    private void addReceiveTask(final NetworkCloudletExt cloudlet, final NetworkCloudletExt sourceCloudlet, long packet_num) {
+        final var task = new CloudletReceiveTaskExt(cloudlet.getTasks().size(), sourceCloudlet.getVm());
         task.setMemory(TASK_RAM);
         task.setExpectedPacketsToReceive(packet_num);
         cloudlet.addTask(task);

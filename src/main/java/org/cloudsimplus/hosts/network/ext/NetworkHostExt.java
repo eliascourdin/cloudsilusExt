@@ -18,11 +18,13 @@ import org.cloudsimplus.hosts.HostSuitability;
 import org.cloudsimplus.network.HostPacket;
 import org.cloudsimplus.network.VmPacket;
 import org.cloudsimplus.network.ext.HostPacketExt;
+import org.cloudsimplus.network.ext.VmPacketExt;
 import org.cloudsimplus.network.switches.EdgeSwitch;
 import org.cloudsimplus.network.switches.ext.EdgeSwitchExt;
 import org.cloudsimplus.resources.Pe;
 import org.cloudsimplus.schedulers.cloudlet.network.CloudletTaskScheduler;
 import org.cloudsimplus.schedulers.cloudlet.network.CloudletTaskSchedulerSimple;
+import org.cloudsimplus.schedulers.cloudlet.network.ext.CloudletTaskSchedulerExt;
 import org.cloudsimplus.schedulers.vm.VmSchedulerSpaceShared;
 import org.cloudsimplus.vms.Vm;
 import org.slf4j.Logger;
@@ -123,7 +125,7 @@ public class NetworkHostExt extends HostSimple {
         hostPktsReceived.clear();
     }
 
-    private void receivePacket(final VmPacket vmPacket) {
+    private void receivePacket(final VmPacketExt vmPacket) {
         final Vm destinationVm = receiveVmPacket(vmPacket);
         if(getVmList().contains(destinationVm)){
             final CloudletTaskScheduler taskScheduler = getVmPacketScheduler(destinationVm);
@@ -147,7 +149,7 @@ public class NetworkHostExt extends HostSimple {
      * @param vmPacket the {@link VmPacket} to receive
      * @return the targeting VM
      */
-    private Vm receiveVmPacket(final VmPacket vmPacket) {
+    private Vm receiveVmPacket(final VmPacketExt vmPacket) {
         vmPacket.setReceiveTime(getSimulation().clock());
         return vmPacket.getDestination();
     }
@@ -198,7 +200,7 @@ public class NetworkHostExt extends HostSimple {
         pktsToSendForExternalVms.clear();
     }
 
-    private CloudletTaskScheduler getVmPacketScheduler(final Vm vm) {
+    private CloudletTaskSchedulerExt getVmPacketScheduler(final Vm vm) {
         return vm.getCloudletScheduler().getTaskScheduler();
     }
 
@@ -231,7 +233,7 @@ public class NetworkHostExt extends HostSimple {
      */
     private void collectAllPacketsToSendFromVm(final Vm sourceVm) {
         final CloudletTaskScheduler taskScheduler = getVmPacketScheduler(sourceVm);
-        for (final VmPacket vmPkt : taskScheduler.getVmPacketsToSend()) {
+        for (final VmPacketExt vmPkt : taskScheduler.getVmPacketsToSend()) {
             collectPacketToSendFromVm(vmPkt);
         }
 
@@ -244,7 +246,7 @@ public class NetworkHostExt extends HostSimple {
      * @param vmPkt a packet to be sent from a Vm to another one
      * @see #collectAllPacketsToSendFromVm(Vm)
      */
-    private void collectPacketToSendFromVm(final VmPacket vmPkt) {
+    private void collectPacketToSendFromVm(final VmPacketExt vmPkt) {
         final var hostPkt= new HostPacketExt(this, vmPkt);
         final var receiverVm = vmPkt.getDestination();
 
